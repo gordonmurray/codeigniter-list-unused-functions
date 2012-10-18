@@ -19,7 +19,12 @@
             </thead>
             <tbody>
                 <?php foreach ($controllers as $controller): ?>
-
+                	
+                	<?php if (is_array($controller["filename"]) || $controller["filename"] === 'index.html') 
+					{
+						continue; // This is a directory not a file or an index.html file
+					}
+					?>
                     <tr>
                         <td><?php echo $controller["filename"]; ?></td>
                         <td><?php echo byte_format($controller["size"]["size"]); ?></td>
@@ -51,7 +56,12 @@
             </thead>
             <tbody>
                 <?php foreach ($models as $model): ?>
-
+					
+					<?php if (is_array($model["filename"]) || $model["filename"] === 'index.html')
+					{
+						continue; // This is a directory not a file or an index.html file
+					}
+					?>
                     <tr>
                         <td><?php echo $model["filename"]; ?></td>
                         <td><?php echo $model["size"]["size"]; ?></td>
