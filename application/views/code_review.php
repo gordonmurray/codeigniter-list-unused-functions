@@ -22,8 +22,8 @@
 
                     <tr>
                         <td><?php echo $controller["filename"]; ?></td>
-                        <td><?php echo  byte_format($controller["size"]["size"]); ?></td>
-                        <td><?php echo $controller["size"]["date"]; ?></td>
+                        <td><?php echo byte_format($controller["size"]["size"]); ?></td>
+                        <td><?php echo date('d M Y', $controller["size"]["date"]); ?></td>
                         <td>
                             <ol>
                                 <?php foreach ($controller["functions"] as $function): ?>
