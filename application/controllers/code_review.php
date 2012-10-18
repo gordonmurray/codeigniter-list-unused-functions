@@ -11,6 +11,8 @@ class Code_review extends CI_Controller
         parent::__construct();
     }
 
+    // --------------------------------------------------------------------
+
     /**
      * List all files and the functions within them
      */
@@ -41,6 +43,8 @@ class Code_review extends CI_Controller
         $this->load->view('code_review', $data);
     }
 
+    // --------------------------------------------------------------------
+
     /**
      * Compile a list of files in a folder
      * @param string $folder
@@ -63,6 +67,8 @@ class Code_review extends CI_Controller
 
         return $clean_files_array;
     }
+
+    // --------------------------------------------------------------------
 
     /**
      * Open each files, compile a list of functions within
@@ -92,6 +98,8 @@ class Code_review extends CI_Controller
         return $array_of_filenames;
     }
 
+    // --------------------------------------------------------------------
+
     /**
      * Look through file content to find functions
      * @param string $folder
@@ -120,6 +128,8 @@ class Code_review extends CI_Controller
 
         return $functions_found;
     }
+
+    // --------------------------------------------------------------------
 
     /**
      * Find any usage of the model functions in the controllers
@@ -175,6 +185,8 @@ class Code_review extends CI_Controller
 
         return $updated_model_functions;
     }
+
+    // --------------------------------------------------------------------
 
     /**
      * Find any function usage in other models
@@ -239,6 +251,8 @@ class Code_review extends CI_Controller
         return $updated_functions_array;
     }
 
+    // --------------------------------------------------------------------
+
     /**
      * Read the content from a file
      * @param string $folder
@@ -253,6 +267,8 @@ class Code_review extends CI_Controller
 
         return $file_content;
     }
+
+    // --------------------------------------------------------------------
 
 }
 
