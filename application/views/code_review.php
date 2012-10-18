@@ -22,7 +22,7 @@
 
                     <tr>
                         <td><?php echo $controller["filename"]; ?></td>
-                        <td><?php echo $controller["size"]["size"]; ?></td>
+                        <td><?php echo  byte_format($controller["size"]["size"]); ?></td>
                         <td><?php echo $controller["size"]["date"]; ?></td>
                         <td>
                             <ol>

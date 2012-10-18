@@ -35,7 +35,9 @@ class Code_review extends CI_Controller
         $data["controllers"] = $controller_files;
 
         $data["models"] = $model_files;
-
+		
+		$this->load->helper('number_helper');
+		
         $this->load->view('code_review', $data);
     }
 
