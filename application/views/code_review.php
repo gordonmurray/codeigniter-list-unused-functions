@@ -1,7 +1,7 @@
 <html>
     <head>
         <title>Code Review Output</title>
-        <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>css/bootstrap.css" />
+        <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.1.1/css/bootstrap.min.css" />
     </head>
     <body>
 
