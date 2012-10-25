@@ -1,7 +1,7 @@
 <html>
     <head>
         <title>Code Review Output</title>
-        <link rel="stylesheet" type="text/css" href="<?php echo base_url(); ?>css/bootstrap.css" />
+        <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.1.1/css/bootstrap.min.css" />
     </head>
     <body>
 
@@ -19,11 +19,16 @@
             </thead>
             <tbody>
                 <?php foreach ($controllers as $controller): ?>
-
+                	
+                	<?php if (is_array($controller["filename"]) || $controller["filename"] === 'index.html') 
+			{
+				continue; // This is a directory not a file or an index.html file
+			}
+			?>
                     <tr>
                         <td><?php echo $controller["filename"]; ?></td>
-                        <td><?php echo $controller["size"]["size"]; ?></td>
-                        <td><?php echo $controller["size"]["date"]; ?></td>
+                        <td><?php echo byte_format($controller["size"]["size"]); ?></td>
+                        <td><?php echo date('d M Y', $controller["size"]["date"]); ?></td>
                         <td>
                             <ol>
                                 <?php foreach ($controller["functions"] as $function): ?>
@@ -51,7 +56,12 @@
             </thead>
             <tbody>
                 <?php foreach ($models as $model): ?>
-
+					
+			<?php if (is_array($model["filename"]) || $model["filename"] === 'index.html')
+			{
+				continue; // This is a directory not a file or an index.html file
+			}
+			?>
                     <tr>
                         <td><?php echo $model["filename"]; ?></td>
                         <td><?php echo $model["size"]["size"]; ?></td>
