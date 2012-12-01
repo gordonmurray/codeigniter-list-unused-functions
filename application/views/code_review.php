@@ -65,7 +65,7 @@
                     <tr>
                         <td><?php echo $model["filename"]; ?></td>
                         <td><?php echo byte_format($model["size"]["size"]); ?></td>
-                        <td><?php echo $model["size"]["date"]; ?></td>
+                        <td><?php echo date('d M Y', $model["size"]["date"]); ?></td>
                         <td>
                             <ol>
                                 <?php foreach ($model["functions_with_usage"] as $function => $usage_array): ?>
