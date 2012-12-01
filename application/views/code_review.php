@@ -64,7 +64,7 @@
 			?>
                     <tr>
                         <td><?php echo $model["filename"]; ?></td>
-                        <td><?php echo $model["size"]["size"]; ?></td>
+                        <td><?php echo byte_format($model["size"]["size"]); ?></td>
                         <td><?php echo $model["size"]["date"]; ?></td>
                         <td>
                             <ol>
