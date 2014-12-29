@@ -3,274 +3,165 @@
 if (!defined('BASEPATH'))
     exit('No direct script access allowed');
 
-class Code_review extends CI_Controller
-{
+class Code_review extends CI_Controller {
 
-    function __construct()
-    {
+    function __construct() {
         parent::__construct();
     }
 
-    // --------------------------------------------------------------------
+    private $func_exclude = array('__construct');
+    private $file_exclude = array('code_review.php');
 
-    /**
-     * List all files and the functions within them
-     */
-    public function index()
-    {
+    public function index() {
+
         ini_set('memory_limit', '2048M');
+        $controller_files = array();
+        $model_files = array();
+        $view_files = array();
+        $javascript_files = array();
 
-        $controller_files = $this->list_functions_in_files('controllers', $this->list_files_in_folder('controllers'));
+        $controller_files = $this->list_functions_in_files('application/controllers/', $this->list_files_in_folder('application/controllers/'), $controller_files);
+        $model_files = $this->list_functions_in_files('application/models/', $this->list_files_in_folder('application/models/'), $model_files);
 
-        $model_files = $this->list_functions_in_files('models', $this->list_files_in_folder('models'));
+        $view_files = $this->list_functions_in_files('application/views/', $this->list_files_in_folder('application/views/'), $view_files);
+        $javascript_files = $this->list_functions_in_files('public/js/', $this->list_files_in_folder('public/js/'), $javascript_files);
+
 
         /*
-         * Check to see if the functions inside of models are being used in controllers
+         * Check to see if the functions inside of models are being used in controller and model files
          */
-        $model_files = $this->function_usage_in_controllers($controller_files, $model_files);
+        $merged_files = array_merge($controller_files,$model_files);
+        $model_files = $this->function_usage_in_group_of_files($model_files, $merged_files, 'model');
+
 
         /*
-         * Check to see if the functions inside the models are used withing other models, including itself
+         * Check to see if the functions inside of controller are being used in view, js and controller files
          */
-        //$model_files = $this->function_usage_in_models($model_files);
+        $merged_files = array_merge($view_files, $javascript_files, $controller_files);
+        $controller_files = $this->function_usage_in_group_of_files($controller_files, $merged_files, 'controller');
 
         $data["controllers"] = $controller_files;
-
         $data["models"] = $model_files;
-		
-		$this->load->helper('number_helper');
-		
+
+        $this->load->helper('number_helper');
         $this->load->view('code_review', $data);
     }
-
-    // --------------------------------------------------------------------
 
     /**
      * Compile a list of files in a folder
      * @param string $folder
      */
-    private function list_files_in_folder($folder)
-    {
+    private function list_files_in_folder($folder) {
         $this->load->helper('directory');
-
-        $files_array = directory_map('./application/' . $folder);
-
-        $clean_files_array = array();
-
-        foreach ($files_array as $file)
-        {
-            if ($file != 'code_review.php')
-            {
-                $clean_files_array[] = $file;
-            }
-        }
-
-        return $clean_files_array;
+        $files_array = directory_map('./' . $folder);
+        return $files_array;
     }
-
-    // --------------------------------------------------------------------
 
     /**
      * Open each files, compile a list of functions within
      * @param string $folder
      * @param array $array_of_filenames
+     * @param $new_array
      */
-    private function list_functions_in_files($folder, $array_of_filenames)
-    {
+    private function list_functions_in_files($folder, $array_of_filenames, &$new_array) {
         $this->load->helper('file');
-        $counter = 0;
-
-        foreach ($array_of_filenames as $filename)
-        {
-            if ($filename != 'code_review.php') // no need to check itself
-            {
-                $file_content = preg_replace('/\s+/', ' ', read_file('./application/' . $folder . '/' . $filename));
-
-                $array_of_filenames[$counter] = array(
-                    'filename' => $filename,
-                    'size' => get_file_info('./application/' . $folder . '/' . $filename),
-                    'functions' => $this->discover_functions_in_content($file_content)
-                );
+        foreach ($array_of_filenames as $key => $filename) {
+            if (is_array($filename)){
+                $this->list_functions_in_files($folder . $key . '/', $filename, $new_array);
             }
-            $counter++;
+            else{
+                if ( !in_array($filename, $this->file_exclude) ) {
+                    $file_content = read_file('./' . $folder . $filename);
+                    $new_array[] = array(
+                        'filename' => $filename,
+                        'info' => get_file_info('./' . $folder . $filename),
+                        'functions' => $this->discover_functions_in_content($file_content)
+                    );
+                }
+            }
         }
-
-        return $array_of_filenames;
+        return $new_array;
     }
 
     // --------------------------------------------------------------------
-
     /**
      * Look through file content to find functions
-     * @param string $folder
      * @param string $file_content
      */
-    private function discover_functions_in_content($file_content)
-    {
+    private function discover_functions_in_content($file_content) {
         $functions_found = array();
-        $start_tag = "function";
-        $end_tag = ")";
 
-        while ((strstr($file_content, $start_tag)) == true)
-        {
-            $start_tag_position = strpos($file_content, $start_tag) + strlen($start_tag);
-            $end_tag_position = strpos($file_content, $end_tag, $start_tag_position) + 1;
-            $length = $end_tag_position - $start_tag_position;
+        preg_match_all('/function\s+[A-z0-9_]*\(/', $file_content, $matches);
 
-            $functions_found[] = trim(substr($file_content, $start_tag_position, $length));
+        if (!empty($matches[0])) {
 
-            /*
-             * reduce the length of the $file_content for the next loop
-             */
-            $content_length = (strlen($file_content) - $end_tag_position);
-            $file_content = substr($file_content, $end_tag_position, $content_length);
+            foreach ($matches[0] as $key => $match) {
+                $func_name = str_replace('function ', '',$match);
+                $func_name = trim(str_replace('(', '',$func_name));
+
+                if ( !in_array($func_name, $this->func_exclude) ){
+                    $functions_found[] = $func_name;
+                }
+            }
         }
-
         return $functions_found;
     }
 
     // --------------------------------------------------------------------
-
     /**
-     * Find any usage of the model functions in the controllers
-     * @param array $controller_functions
-     * @param array $model_functions
-     * @return array $updated_model_functions
+     * Find $files_source array of files with methods being used in $files_target array of files
+     * @param array $files_target
+     * @param array $files_source
+     * @return array files_source array
      */
-    function function_usage_in_controllers($controller_functions, $model_functions)
-    {
+    function function_usage_in_group_of_files($files_source, $files_target, $whose_funcions) {
         $this->load->helper('file');
-
-        $updated_model_functions = array();
-
-        foreach ($model_functions as $model)
-        {
-            $model_name = str_replace(".php", "", $model['filename']);
-            $model_functions = $model['functions'];
-            $updated_functions_array = array();
-
+        $updated_files_source = array();
+        foreach ($files_source as $file_source) {
+            $file_source_name = str_replace(".php", "", $file_source['filename']);
+            $file_source_functions = $file_source['functions'];
             /*
-             * loop through the functions in a model
+             * loop through the source functions
              */
-            foreach ($model_functions as $function)
-            {
-                $first_bracket = strpos($function, "(");
-                $function = substr($function, 0, $first_bracket);
-                $updated_functions_array[$function] = array('usage' => array());
-
+            foreach ($file_source_functions as $function_source_name) {
+                $usage = array();
                 /*
-                 * loop through the controllers
+                 * loop through the target files
                  */
-                foreach ($controller_functions as $controller)
-                {
-                    $controller_name = $controller["filename"];
-                    $controller_content = read_file('./application/controllers/' . $controller["filename"]);
-
-                    $function_call = $model_name . '->' . $function;
-
-                    if (stristr($controller_content, $function_call) == TRUE)
-                    {
-                        $updated_functions_array[$function]['usage'][] = $function . '() used in the controller called ' . $controller_name;
+                foreach ($files_target as $file_target) {
+                    $file_target_name = $file_target["filename"];
+                    $file_target_content = read_file($file_target["info"]["server_path"]);
+                    if ($whose_funcions == 'model'){
+                        $pattern = '/('.$file_source_name.'|this)->'.$function_source_name.'/i';
+                        preg_match_all($pattern, $file_target_content, $matches);
                     }
-                }
-            }
-
-            $updated_model_functions[] = array(
-                'filename' => $model['filename'],
-                'size' => $model['size'],
-                'functions' => $model_functions,
-                'functions_with_usage' => $updated_functions_array
-            );
-        }
-
-        return $updated_model_functions;
-    }
-
-    // --------------------------------------------------------------------
-
-    /**
-     * Find any function usage in other models
-     * @param array $model_files
-     */
-    function function_usage_in_models($model_functions)
-    {
-        $this->load->helper('file');
-
-        $updated_functions_array = array();
-        $usage = array();
-
-        /*
-         * Look trough each model file
-         */
-        foreach ($model_functions as $model)
-        {
-            $original_model_name = str_replace(".php", "", $model['filename']);
-            $model_internal_functions = $model['functions'];
-
-            /*
-             * loop through the functions in this model file
-             */
-            if (!empty($model_internal_functions))
-            {
-                foreach ($model_internal_functions as $function)
-                {
-                    $function = substr($function, 0, strpos($function, "("));
-                    $usage = array();
-
-                    /*
-                     * Look through the models again to look for mentions
-                     */
-                    foreach ($model_functions as $model_to_look_inside)
-                    {
-                        $model_name = str_replace(".php", "", $model_to_look_inside['filename']);
-
-                        $model_content = $this->file_content('models', $model_to_look_inside['filename']);
-
-                        $function_call = $original_model_name . '->' . $function;
-                        $internal_function_call = 'this->' . $function;
-
-                        //echo "Looking for usage of '$function_call' or '$internal_function_call' inside " . $model_name . "<br />\n";
-
-                        if (stristr($model_content, $function_call) == TRUE || stristr($model_content, $internal_function_call) == TRUE)
-                        {
-                            $usage[] = $function . '() used in the model called ' . $model_name;
-                        }
+                    elseif($whose_funcions == 'controller'){
+                        $pattern = '/('.$file_source_name.'(\/|->)'.$function_source_name.')|(this->'.$function_source_name.')/i';
+                        preg_match_all($pattern, $file_target_content, $matches);
                     }
 
-                    $updated_usage = array_merge($model["functions_with_usage"][$function]["usage"], $usage);
+                    if (!empty($matches[0])){
+                        $usage[] = $function_source_name . ' used in the file ' . $file_target["info"]["server_path"];
+                    }
 
-                    $model["functions_with_usage"][$function]["usage"] = $updated_usage;
-
-                    $updated_functions_array[] = $model;
                 }
+
+                if (!isset($file_source["functions_with_usage"][$function_source_name]["usage"])){
+                    $file_source["functions_with_usage"][$function_source_name]["usage"] = array();
+                }
+                $file_source["functions_with_usage"][$function_source_name]["usage"] = array_merge($file_source["functions_with_usage"][$function_source_name]["usage"], $usage);
             }
+            $updated_files_source[] = $file_source;
         }
-
-        //print_r($updated_functions_array);
-
-        return $updated_functions_array;
+        return $updated_files_source;
     }
 
-    // --------------------------------------------------------------------
-
-    /**
-     * Read the content from a file
-     * @param string $folder
-     * @param string $filename
-     * @return string $file_content
-     */
-    private function file_content($folder, $filename)
-    {
-        $this->load->helper('file');
-
-        $file_content = preg_replace('/\s+/', ' ', read_file('./application/' . $folder . '/' . $filename));
-
-        return $file_content;
+    function array_value_recursive(array $arr){
+        $val = array();
+        array_walk_recursive($arr, function($v, $k) use(&$val){
+            array_push($val, $v);
+        });
+        return count($val) > 1 ? $val : array_pop($val);
     }
-
-    // --------------------------------------------------------------------
 
 }
-
-/* End of file Users.php */
-/* Location: ./application/controllers/Code_review.php */
